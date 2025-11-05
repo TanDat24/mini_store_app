@@ -1,4 +1,4 @@
 package sgu.fit.supermarket.dao.impl;
 
-public interface CustomerDAOImpl {
+public class CustomerDAOImpl {
 }

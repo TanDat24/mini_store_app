@@ -1,4 +1,4 @@
 package sgu.fit.supermarket.dao;
 
-public class CategoryDAO {
+public interface CategoryDAO {
 }
