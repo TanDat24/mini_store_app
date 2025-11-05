@@ -1,4 +1,206 @@
 package sgu.fit.supermarket.gui.swing;
 
-public class CategoryFrame {
+import sgu.fit.supermarket.bus.CategoryService;
+import sgu.fit.supermarket.bus.impl.CategoryServiceImpl;
+import sgu.fit.supermarket.dto.CategoryDTO;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+public class CategoryFrame extends JPanel {
+    private final CategoryService categoryService;
+
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JTextField txtId;
+    private JTextField txtName;
+    private JTextField txtSearch;
+
+    public CategoryFrame() {
+        this.categoryService = new CategoryServiceImpl();
+        setLayout(new BorderLayout());
+        setOpaque(true);
+        setBackground(Color.WHITE);
+
+        add(createHeader(), BorderLayout.NORTH);
+        add(createCenter(), BorderLayout.CENTER);
+        add(createFooter(), BorderLayout.SOUTH);
+
+        loadTableData();
+    }
+
+    private JComponent createHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        JLabel title = new JLabel("📁 Quản lý Danh mục");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        searchPanel.setOpaque(false);
+        txtSearch = new JTextField(24);
+        JButton btnSearch = new JButton("Tìm kiếm");
+        JButton btnRefresh = new JButton("Tải lại");
+        btnSearch.addActionListener(e -> search());
+        btnRefresh.addActionListener(e -> { txtSearch.setText(""); loadTableData(); });
+
+        searchPanel.add(new JLabel("Từ khóa:"));
+        searchPanel.add(txtSearch);
+        searchPanel.add(btnSearch);
+        searchPanel.add(btnRefresh);
+
+        header.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+        header.add(title, BorderLayout.WEST);
+        header.add(searchPanel, BorderLayout.EAST);
+        return header;
+    }
+
+    private JComponent createCenter() {
+        JPanel center = new JPanel(new BorderLayout(10, 10));
+        center.setOpaque(false);
+        center.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+
+        // table
+        tableModel = new DefaultTableModel(new String[]{"ID", "Tên danh mục"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        table = new JTable(tableModel);
+        table.setRowHeight(24);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getSelectionModel().addListSelectionListener(e -> onRowSelected());
+        JScrollPane scroll = new JScrollPane(table);
+
+        // form
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+
+        txtId = new JTextField();
+        txtId.setEditable(false);
+        txtName = new JTextField();
+
+        addFormRow(form, gbc, 0, "ID", txtId);
+        addFormRow(form, gbc, 1, "Tên danh mục", txtName);
+
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, scroll, form);
+        split.setResizeWeight(0.7);
+        center.add(split, BorderLayout.CENTER);
+        return center;
+    }
+
+    private void addFormRow(JPanel form, GridBagConstraints gbc, int row, String label, JComponent field) {
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0;
+        form.add(new JLabel(label), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1;
+        form.add(field, gbc);
+    }
+
+    private JComponent createFooter() {
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        footer.setOpaque(false);
+        JButton btnClear = new JButton("Làm mới");
+        JButton btnAdd = new JButton("Thêm");
+        JButton btnUpdate = new JButton("Cập nhật");
+        JButton btnDelete = new JButton("Xóa");
+        btnClear.addActionListener(e -> clearForm());
+        btnAdd.addActionListener(e -> add());
+        btnUpdate.addActionListener(e -> update());
+        btnDelete.addActionListener(e -> deleteItem());
+        footer.add(btnClear); footer.add(btnAdd); footer.add(btnUpdate); footer.add(btnDelete);
+        return footer;
+    }
+
+    private void loadTableData() {
+        tableModel.setRowCount(0);
+        List<CategoryDTO> list = categoryService.getAllCategories();
+        if (list == null) return;
+        for (CategoryDTO c : list) {
+            tableModel.addRow(new Object[]{ c.getCategoryId(), c.getCategoryName() });
+        }
+    }
+
+    private void search() {
+        List<CategoryDTO> list = categoryService.searchCategoriesByName(txtSearch.getText());
+        tableModel.setRowCount(0);
+        if (list == null) return;
+        for (CategoryDTO c : list) {
+            tableModel.addRow(new Object[]{ c.getCategoryId(), c.getCategoryName() });
+        }
+    }
+
+    private void onRowSelected() {
+        int row = table.getSelectedRow();
+        if (row < 0) return;
+        txtId.setText(String.valueOf(table.getValueAt(row, 0)));
+        txtName.setText(String.valueOf(table.getValueAt(row, 1)));
+    }
+
+    private void clearForm() {
+        txtId.setText("");
+        txtName.setText("");
+        table.clearSelection();
+    }
+
+    private void add() {
+        String name = txtName.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tên danh mục không được trống");
+            return;
+        }
+        CategoryDTO c = new CategoryDTO();
+        c.setCategoryName(name);
+        boolean ok = categoryService.addCategory(c);
+        if (ok) {
+            JOptionPane.showMessageDialog(this, "Thêm danh mục thành công!");
+            loadTableData();
+            clearForm();
+        } else {
+            JOptionPane.showMessageDialog(this, "Thêm danh mục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void update() {
+        if (txtId.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn danh mục để cập nhật!");
+            return;
+        }
+        String name = txtName.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tên danh mục không được trống");
+            return;
+        }
+        CategoryDTO c = new CategoryDTO();
+        c.setCategoryId(Integer.parseInt(txtId.getText().trim()));
+        c.setCategoryName(name);
+        boolean ok = categoryService.updateCategory(c);
+        if (ok) {
+            JOptionPane.showMessageDialog(this, "Cập nhật danh mục thành công!");
+            loadTableData();
+        } else {
+            JOptionPane.showMessageDialog(this, "Cập nhật danh mục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void deleteItem() {
+        if (txtId.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn danh mục để xóa!");
+            return;
+        }
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa danh mục này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) return;
+        int id = Integer.parseInt(txtId.getText().trim());
+        boolean ok = categoryService.deleteCategory(id);
+        if (ok) {
+            JOptionPane.showMessageDialog(this, "Xóa danh mục thành công!");
+            loadTableData();
+            clearForm();
+        } else {
+            JOptionPane.showMessageDialog(this, "Xóa danh mục thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 }

@@ -10,6 +10,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.InputStream;
 
 public class MainFrame extends JFrame {
     private JPanel contentPanel;
@@ -31,8 +34,10 @@ public class MainFrame extends JFrame {
     private MenuButton btnCategory;
     private MenuButton btnSupplier;
     private MenuButton btnEmployee;
+    private MenuButton btnAccount;
     private MenuButton btnInvoice;
     private MenuButton btnImport;
+    private MenuButton btnStatistics;
     private JButton btnNewInvoice;
     private JButton btnNewProduct;
     private JButton btnNewImport;
@@ -178,34 +183,44 @@ public class MainFrame extends JFrame {
         sidebar.setBackground(new Color(33, 150, 243));
         sidebar.setPreferredSize(new Dimension(250, 0));
         sidebar.setLayout(new BorderLayout());
-        
+
         // Header
         JPanel sidebarHeader = new JPanel();
         sidebarHeader.setBackground(new Color(25, 118, 210));
         sidebarHeader.setBorder(BorderFactory.createEmptyBorder(20, 15, 20, 15));
         sidebarHeader.setLayout(new BorderLayout());
-        
-        JLabel lblTitle = new JLabel("🛒 MENU");
+
+        // Load logo icon
+        ImageIcon logoIcon = loadIcon("logo.png", 40, 40);
+        JLabel lblTitle = new JLabel(" MENU");
         lblTitle.setForeground(Color.WHITE);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        
+        if (logoIcon != null) {
+            lblTitle.setIcon(logoIcon);
+        }
+        lblTitle.setIconTextGap(10);
+
         sidebarHeader.add(lblTitle, BorderLayout.CENTER);
-        
+
+
+
         // Menu items
         JPanel menuPanel = new JPanel();
         menuPanel.setBackground(new Color(33, 150, 243));
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
         menuPanel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
         
-        // Create menu buttons
-        MenuButton btnDashboard = createMenuButton("📊 Dashboard", "DASHBOARD");
-        btnProduct = createMenuButton("📦 Sản phẩm", "PRODUCT");
-        btnCategory = createMenuButton("📁 Danh mục", "CATEGORY");
-        btnSupplier = createMenuButton("🏭 Nhà cung cấp", "SUPPLIER");
-        MenuButton btnCustomer = createMenuButton("👥 Khách hàng", "CUSTOMER");
-        btnEmployee = createMenuButton("👨‍💼 Nhân viên", "EMPLOYEE");
-        btnInvoice = createMenuButton("🧾 Hóa đơn", "INVOICE");
-        btnImport = createMenuButton("📥 Nhập hàng", "IMPORT");
+        // Create menu buttons with icons
+        MenuButton btnDashboard = createMenuButtonWithIcon("Dashboard", "DASHBOARD", "dashboard.png");
+        btnProduct = createMenuButtonWithIcon("Sản phẩm", "PRODUCT", "product.png");
+        btnCategory = createMenuButtonWithIcon("Danh mục", "CATEGORY", "category.png");
+        btnSupplier = createMenuButtonWithIcon("Nhà cung cấp", "SUPPLIER", "supplier.png");
+        MenuButton btnCustomer = createMenuButtonWithIcon("Khách hàng", "CUSTOMER", "customer.png");
+        btnEmployee = createMenuButtonWithIcon("Nhân viên", "EMPLOYEE", "employee.png");
+        btnAccount = createMenuButtonWithIcon("Tài khoản", "ACCOUNT", "account.png");
+        btnInvoice = createMenuButtonWithIcon("Hóa đơn", "INVOICE", "invoice.png");
+        btnImport = createMenuButtonWithIcon("Nhập hàng", "IMPORT", "import-product.png");
+        btnStatistics = createMenuButtonWithIcon("Thống kê doanh thu", "STATISTICS", "statistical.png");
         
         menuPanel.add(btnDashboard);
         menuPanel.add(Box.createVerticalStrut(10));
@@ -222,6 +237,10 @@ public class MainFrame extends JFrame {
         menuPanel.add(btnInvoice);
         menuPanel.add(Box.createVerticalStrut(10));
         menuPanel.add(btnImport);
+        menuPanel.add(Box.createVerticalStrut(10));
+        menuPanel.add(btnAccount);
+        menuPanel.add(Box.createVerticalStrut(10));
+        menuPanel.add(btnStatistics);
         menuPanel.add(Box.createVerticalGlue());
         
         // Logout button at bottom
@@ -230,7 +249,7 @@ public class MainFrame extends JFrame {
         logoutPanel.setLayout(new BorderLayout());
         logoutPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 20, 10));
         
-        MenuButton btnLogout = new MenuButton("🚪 Đăng xuất");
+        MenuButton btnLogout = new MenuButton("Đăng xuất");
         btnLogout.setBackground(new Color(244, 67, 54)); // Red color for logout
         btnLogout.addActionListener(e -> performLogout());
         btnLogout.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -281,6 +300,34 @@ public class MainFrame extends JFrame {
         return btn;
     }
     
+    private MenuButton createMenuButtonWithIcon(String text, String cardName, String iconName) {
+        MenuButton btn = new MenuButton(text);
+        ImageIcon icon = loadIcon(iconName, 24, 24);
+        if (icon != null) {
+            btn.setIcon(icon);
+            btn.setIconTextGap(10);
+        }
+        btn.addActionListener(e -> showCard(cardName));
+        return btn;
+    }
+    
+    private ImageIcon loadIcon(String iconName, int width, int height) {
+        try {
+            String resourcePath = "/assets/product_images/" + iconName;
+            InputStream imageStream = getClass().getResourceAsStream(resourcePath);
+            if (imageStream != null) {
+                BufferedImage image = ImageIO.read(imageStream);
+                if (image != null) {
+                    Image scaledImage = image.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                    return new ImageIcon(scaledImage);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading icon: " + iconName + " - " + e.getMessage());
+        }
+        return null;
+    }
+    
     private void createContentArea() {
         contentPanel = new JPanel();
         cardLayout = new CardLayout();
@@ -296,12 +343,17 @@ public class MainFrame extends JFrame {
         dashboardPanel.setLayout(new BorderLayout());
         dashboardPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
         
-        // Header
+        // Header with icon
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         headerPanel.setOpaque(false);
-        JLabel headerLabel = new JLabel("📊 Dashboard - Tổng quan");
+        ImageIcon dashboardIcon = loadIcon("dashboard.png", 32, 32);
+        JLabel headerLabel = new JLabel(" Dashboard - Tổng quan");
         headerLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         headerLabel.setForeground(new Color(33, 33, 33));
+        if (dashboardIcon != null) {
+            headerLabel.setIcon(dashboardIcon);
+            headerLabel.setIconTextGap(10);
+        }
         headerPanel.add(headerLabel);
         
         // Stats cards
@@ -309,15 +361,15 @@ public class MainFrame extends JFrame {
         statsPanel.setOpaque(false);
         statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
         
-        // Stat cards
-        statsPanel.add(createStatCard("📦 Tổng sản phẩm", "1,234", new Color(76, 175, 80)));
-        statsPanel.add(createStatCard("📁 Danh mục", "15", new Color(33, 150, 243)));
-        statsPanel.add(createStatCard("👥 Khách hàng", "567", new Color(255, 152, 0)));
-        statsPanel.add(createStatCard("👨‍💼 Nhân viên", "12", new Color(156, 39, 176)));
-        statsPanel.add(createStatCard("🧾 Hóa đơn hôm nay", "89", new Color(244, 67, 54)));
-        statsPanel.add(createStatCard("💰 Doanh thu hôm nay", "15,500,000đ", new Color(0, 150, 136)));
-        statsPanel.add(createStatCard("📥 Nhập hàng", "23", new Color(255, 87, 34)));
-        statsPanel.add(createStatCard("🏭 Nhà cung cấp", "8", new Color(121, 85, 72)));
+        // Stat cards with icons
+        statsPanel.add(createStatCardWithIcon("Tổng sản phẩm", "1,234", new Color(76, 175, 80), "product.png"));
+        statsPanel.add(createStatCardWithIcon("Danh mục", "15", new Color(33, 150, 243), "category.png"));
+        statsPanel.add(createStatCardWithIcon("Khách hàng", "567", new Color(255, 152, 0), "customer.png"));
+        statsPanel.add(createStatCardWithIcon("Nhân viên", "12", new Color(156, 39, 176), "employee.png"));
+        statsPanel.add(createStatCardWithIcon("Hóa đơn hôm nay", "89", new Color(244, 67, 54), "invoice.png"));
+        statsPanel.add(createStatCardWithIcon("Doanh thu hôm nay", "15,500,000đ", new Color(0, 150, 136), "statistical.png"));
+        statsPanel.add(createStatCardWithIcon("Nhập hàng", "23", new Color(255, 87, 34), "import-product.png"));
+        statsPanel.add(createStatCardWithIcon("Nhà cung cấp", "8", new Color(121, 85, 72), "supplier.png"));
         
         // Quick actions
         JPanel quickActionsPanel = new JPanel();
@@ -329,15 +381,15 @@ public class MainFrame extends JFrame {
         quickActionsLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         quickActionsLabel.setForeground(new Color(33, 33, 33));
         
-        btnNewInvoice = new JButton("➕ Tạo hóa đơn mới");
+        btnNewInvoice = new JButton("Tạo hóa đơn mới");
         styleQuickActionButton(btnNewInvoice, new Color(76, 175, 80));
         btnNewInvoice.addActionListener(e -> showCard("INVOICE"));
         
-        btnNewProduct = new JButton("➕ Thêm sản phẩm");
+        btnNewProduct = new JButton("Thêm sản phẩm");
         styleQuickActionButton(btnNewProduct, new Color(33, 150, 243));
         btnNewProduct.addActionListener(e -> showCard("PRODUCT"));
         
-        btnNewImport = new JButton("➕ Nhập hàng");
+        btnNewImport = new JButton("Nhập hàng");
         styleQuickActionButton(btnNewImport, new Color(255, 152, 0));
         btnNewImport.addActionListener(e -> showCard("IMPORT"));
         
@@ -401,6 +453,47 @@ public class MainFrame extends JFrame {
         return card;
     }
     
+    private JPanel createStatCardWithIcon(String title, String value, Color color, String iconName) {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setLayout(new BorderLayout());
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        // Icon panel
+        JPanel iconPanel = new JPanel();
+        iconPanel.setOpaque(false);
+        iconPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        ImageIcon icon = loadIcon(iconName, 32, 32);
+        if (icon != null) {
+            JLabel iconLabel = new JLabel(icon);
+            iconPanel.add(iconLabel);
+        }
+        
+        // Content panel
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BorderLayout());
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        titleLabel.setForeground(new Color(100, 100, 100));
+        
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        valueLabel.setForeground(color);
+        
+        content.add(iconPanel, BorderLayout.NORTH);
+        content.add(titleLabel, BorderLayout.CENTER);
+        content.add(valueLabel, BorderLayout.SOUTH);
+        
+        card.add(content, BorderLayout.CENTER);
+        
+        return card;
+    }
+    
     private void styleQuickActionButton(JButton btn, Color color) {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btn.setBackground(color);
@@ -420,6 +513,50 @@ public class MainFrame extends JFrame {
     }
     
     private void showCard(String cardName) {
+        // Kiểm tra quyền trước khi hiển thị
+        if (currentRole != null) {
+            if (cardName.equals("PRODUCT") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("CATEGORY") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("SUPPLIER") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("EMPLOYEE") && !PermissionHelper.canManageEmployee(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("IMPORT") && !PermissionHelper.canImportProducts(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("INVOICE") && !PermissionHelper.canCreateInvoice(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("STATISTICS") && !PermissionHelper.canViewRevenueStats(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("ACCOUNT") && !PermissionHelper.isManager(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+        
         // Create panel if not exists
         if (cardName.equals("PRODUCT")) {
             createProductPanel();
@@ -435,112 +572,78 @@ public class MainFrame extends JFrame {
             createInvoicePanel();
         } else if (cardName.equals("IMPORT")) {
             createImportPanel();
+        } else if (cardName.equals("STATISTICS")) {
+            createStatisticsPanel();
+        } else if (cardName.equals("ACCOUNT")) {
+            createAccountPanel();
         }
         
         cardLayout.show(contentPanel, cardName);
     }
     
     private void createProductPanel() {
-        if (contentPanel.getComponentCount() > 0 && 
-            ((JPanel)contentPanel.getComponent(0)).getName() != null &&
-            ((JPanel)contentPanel.getComponent(0)).getName().equals("PRODUCT")) {
-            return; // Already created
+        // Check if PRODUCT card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "PRODUCT".equals(((JPanel) comp).getName())) {
+                return;
+            }
         }
-        
-        JPanel panel = new JPanel();
-        panel.setName("PRODUCT");
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("📦 Quản lý Sản phẩm", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý sản phẩm sẽ được tích hợp vào đây.</p>" +
-            "<p style='font-size: 14px; color: #999;'>Sử dụng ProductFrame để hiển thị danh sách và thao tác với sản phẩm.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "PRODUCT");
+
+        ProductFrame productPanel = new ProductFrame();
+        productPanel.setName("PRODUCT");
+        contentPanel.add(productPanel, "PRODUCT");
     }
     
     private void createCategoryPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("📁 Quản lý Danh mục", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý danh mục sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "CATEGORY");
+        // Check if CATEGORY card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "CATEGORY".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        CategoryFrame categoryPanel = new CategoryFrame();
+        categoryPanel.setName("CATEGORY");
+        contentPanel.add(categoryPanel, "CATEGORY");
     }
     
     private void createSupplierPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("🏭 Quản lý Nhà cung cấp", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý nhà cung cấp sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "SUPPLIER");
+        // Check if SUPPLIER card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "SUPPLIER".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        SupplierFrame supplierPanel = new SupplierFrame();
+        supplierPanel.setName("SUPPLIER");
+        contentPanel.add(supplierPanel, "SUPPLIER");
     }
     
     private void createCustomerPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("👥 Quản lý Khách hàng", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý khách hàng sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "CUSTOMER");
+        // Check if CUSTOMER card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "CUSTOMER".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        CustomerFrame customerPanel = new CustomerFrame();
+        customerPanel.setName("CUSTOMER");
+        contentPanel.add(customerPanel, "CUSTOMER");
     }
     
     private void createEmployeePanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("👨‍💼 Quản lý Nhân viên", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý nhân viên sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "EMPLOYEE");
+        // Check if EMPLOYEE card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "EMPLOYEE".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        EmployeeFrame employeePanel = new EmployeeFrame();
+        employeePanel.setName("EMPLOYEE");
+        contentPanel.add(employeePanel, "EMPLOYEE");
     }
     
     private void createInvoicePanel() {
@@ -581,6 +684,55 @@ public class MainFrame extends JFrame {
         contentPanel.add(panel, "IMPORT");
     }
     
+    private void createStatisticsPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(new Color(245, 245, 245));
+        
+        // Header with icon
+        ImageIcon statsIcon = loadIcon("statistical.png", 32, 32);
+        JLabel label = new JLabel(" Thống kê Doanh thu", SwingConstants.CENTER);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        label.setForeground(new Color(33, 33, 33));
+        if (statsIcon != null) {
+            label.setIcon(statsIcon);
+            label.setIconTextGap(10);
+        }
+        
+        // Content panel
+        JPanel contentPanel = new JPanel();
+        contentPanel.setOpaque(false);
+        contentPanel.setLayout(new BorderLayout());
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        
+        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
+            "<h2 style='color: #333;'>📊 Thống kê Doanh thu</h2>" +
+            "<p style='font-size: 16px; color: #666; margin-top: 20px;'>Chức năng thống kê doanh thu sẽ được tích hợp vào đây.</p>" +
+            "<p style='font-size: 14px; color: #999; margin-top: 10px;'>Bao gồm: Thống kê theo ngày, tháng, năm, sản phẩm bán chạy, doanh thu theo nhân viên...</p>" +
+            "</div></html>", SwingConstants.CENTER);
+        
+        contentPanel.add(infoLabel, BorderLayout.CENTER);
+        
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+        
+        this.contentPanel.add(panel, "STATISTICS");
+    }
+
+    private void createAccountPanel() {
+        // Check if ACCOUNT card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "ACCOUNT".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        AccountFrame accountPanel = new AccountFrame();
+        accountPanel.setName("ACCOUNT");
+        contentPanel.add(accountPanel, "ACCOUNT");
+    }
+    
     private void applyPermissions() {
         if (currentRole == null) {
             // Nếu không có role, ẩn tất cả các chức năng
@@ -593,6 +745,10 @@ public class MainFrame extends JFrame {
         btnSupplier.setVisible(PermissionHelper.canManageProduct(currentRole));
         btnEmployee.setVisible(PermissionHelper.canManageEmployee(currentRole));
         btnImport.setVisible(PermissionHelper.canImportProducts(currentRole));
+        btnStatistics.setVisible(PermissionHelper.canViewRevenueStats(currentRole));
+        if (btnAccount != null) {
+            btnAccount.setVisible(PermissionHelper.isManager(currentRole));
+        }
         
         // Invoice và Customer luôn hiển thị (cả 2 role đều có quyền)
         // Nhưng sẽ kiểm tra quyền khi truy cập
