@@ -1,11 +1,7 @@
 package sgu.fit.supermarket.gui.swing;
 
-import sgu.fit.supermarket.dao.AccountDAO;
-import sgu.fit.supermarket.dao.EmployeeDAO;
-import sgu.fit.supermarket.dao.RoleDAO;
-import sgu.fit.supermarket.dao.impl.AccountDAOImpl;
-import sgu.fit.supermarket.dao.impl.EmployeeDAOImpl;
-import sgu.fit.supermarket.dao.impl.RoleDAOImpl;
+import sgu.fit.supermarket.bus.AccountService;
+import sgu.fit.supermarket.bus.impl.AccountServiceImpl;
 import sgu.fit.supermarket.dto.AccountDTO;
 import sgu.fit.supermarket.dto.EmployeeDTO;
 import sgu.fit.supermarket.dto.RoleDTO;
@@ -26,9 +22,7 @@ public class LoginFrame extends JFrame {
     private JButton btnLogin;
     private JButton btnExit;
     private JLabel lblMessage;
-    private AccountDAO accountDAO;
-    private EmployeeDAO employeeDAO;
-    private RoleDAO roleDAO;
+    private AccountService accountService;
 
     // --- Custom Panel for Round Corners and Shadow (Simplified) ---
     // Để có hiệu ứng bóng đổ chuẩn, cần thư viện bên ngoài hoặc code phức tạp hơn.
@@ -59,9 +53,7 @@ public class LoginFrame extends JFrame {
     // ----------------------------------------------------------------
 
     public LoginFrame() {
-        accountDAO = new AccountDAOImpl();
-        employeeDAO = new EmployeeDAOImpl();
-        roleDAO = new RoleDAOImpl();
+        accountService = new AccountServiceImpl();
         initializeComponents();
         setupLayout();
         setupEvents();
@@ -80,7 +72,7 @@ public class LoginFrame extends JFrame {
         btnLogin = new JButton("Đăng Nhập");
         btnExit = new JButton("Thoát");
         lblMessage = new JLabel(" ");
-        lblMessage.setForeground(new Color(220, 0, 0)); // Màu đỏ đậm hơn
+        lblMessage.setForeground(new Color(220, 0, 0)); 
         lblMessage.setHorizontalAlignment(SwingConstants.CENTER);
     }
 
@@ -349,22 +341,20 @@ public class LoginFrame extends JFrame {
             @Override
             public void run() {
                 try {
-                    AccountDTO account = accountDAO.login(username, password);
+                    // Sử dụng Service layer để đăng nhập
+                    AccountDTO account = accountService.login(username, password);
 
                     if (account != null) {
-                        // Lấy thông tin Employee và Role
-                        EmployeeDTO employee = employeeDAO.findById(account.getEmployeeId());
-                        RoleDTO role = null;
+                        // Lấy thông tin đầy đủ qua Service layer
+                        Object[] userInfo = accountService.getUserInfoByAccount(account);
                         
-                        if (employee != null) {
-                            role = roleDAO.findById(employee.getRoleId());
-                        }
-                        
-                        if (employee != null && role != null) {
+                        if (userInfo != null && userInfo.length == 3) {
+                            AccountDTO finalAccount = (AccountDTO) userInfo[0];
+                            EmployeeDTO employee = (EmployeeDTO) userInfo[1];
+                            RoleDTO role = (RoleDTO) userInfo[2];
+                            
                             // Lưu vào session
-                            final EmployeeDTO finalEmployee = employee;
-                            final RoleDTO finalRole = role;
-                            UserSession.getInstance().setUser(account, finalEmployee, finalRole);
+                            UserSession.getInstance().setUser(finalAccount, employee, role);
                             
                             // Login successful
                             lblMessage.setText("Đăng nhập thành công!");
@@ -375,7 +365,7 @@ public class LoginFrame extends JFrame {
                                 @Override
                                 public void run() {
                                     dispose();
-                                    MainFrame mainFrame = new MainFrame(account, finalEmployee, finalRole);
+                                    MainFrame mainFrame = new MainFrame(finalAccount, employee, role);
                                     mainFrame.setVisible(true);
                                 }
                             });

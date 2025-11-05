@@ -7,6 +7,8 @@ import sgu.fit.supermarket.util.DBConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RoleDAOImpl implements RoleDAO {
 
@@ -88,6 +90,34 @@ public class RoleDAOImpl implements RoleDAO {
         }
         
         return null;
+    }
+
+    @Override
+    public List<RoleDTO> findAll() {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<RoleDTO> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection();
+            if (conn == null) return list;
+            String sql = "SELECT role_id, role_name FROM Role ORDER BY role_name";
+            ps = conn.prepareStatement(sql);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                RoleDTO role = new RoleDTO();
+                role.setRoleId(rs.getInt("role_id"));
+                role.setRoleName(rs.getString("role_name"));
+                list.add(role);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception ignored) {}
+            try { if (ps != null) ps.close(); } catch (Exception ignored) {}
+            try { if (conn != null) conn.close(); } catch (Exception ignored) {}
+        }
+        return list;
     }
 }
 
