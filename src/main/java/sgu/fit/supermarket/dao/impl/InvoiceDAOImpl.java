@@ -117,6 +117,7 @@ public class InvoiceDAOImpl implements InvoiceDAO {
         PreparedStatement ps = null;
         ResultSet rs = null;
         List<InvoiceDetailDTO> details = new ArrayList<>();
+        
         try {
             conn = DBConnection.getConnection();
             if (conn == null) return details;
@@ -133,6 +134,103 @@ public class InvoiceDAOImpl implements InvoiceDAO {
             closeResources(rs, ps, conn);
         }
         return details;
+    }
+
+    @Override
+    public java.math.BigDecimal getRevenue(java.sql.Date from, java.sql.Date to) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null;
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return java.math.BigDecimal.ZERO;
+            String sql = "SELECT COALESCE(SUM(total_amount),0) AS revenue FROM Invoice WHERE created_at BETWEEN ? AND ?";
+            ps = conn.prepareStatement(sql);
+            ps.setDate(1, from); ps.setDate(2, to);
+            rs = ps.executeQuery();
+            if (rs.next()) return rs.getBigDecimal("revenue");
+        } catch (Exception e) { e.printStackTrace(); }
+        finally { closeResources(rs, ps, conn); }
+        return java.math.BigDecimal.ZERO;
+    }
+
+    @Override
+    public List<Object[]> getTopSellingProducts(java.sql.Date from, java.sql.Date to, int limit) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null;
+        List<Object[]> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return list;
+            String sql = "SELECT d.product_id, p.product_name, SUM(d.quantity) AS qty " +
+                         "FROM Invoice i JOIN InvoiceDetail d ON i.invoice_id = d.invoice_id " +
+                         "JOIN Product p ON p.product_id = d.product_id " +
+                         "WHERE i.created_at BETWEEN ? AND ? " +
+                         "GROUP BY d.product_id, p.product_name ORDER BY qty DESC LIMIT ?";
+            ps = conn.prepareStatement(sql);
+            ps.setDate(1, from); ps.setDate(2, to); ps.setInt(3, limit);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{ rs.getInt("product_id"), rs.getString("product_name"), rs.getInt("qty") });
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        finally { closeResources(rs, ps, conn); }
+        return list;
+    }
+
+    @Override
+    public List<Object[]> getRevenueByEmployee(java.sql.Date from, java.sql.Date to) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null;
+        List<Object[]> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return list;
+            String sql = "SELECT i.employee_id, e.full_name, COALESCE(SUM(i.total_amount),0) AS revenue " +
+                         "FROM Invoice i JOIN Employee e ON e.employee_id = i.employee_id " +
+                         "WHERE i.created_at BETWEEN ? AND ? " +
+                         "GROUP BY i.employee_id, e.full_name ORDER BY revenue DESC";
+            ps = conn.prepareStatement(sql);
+            ps.setDate(1, from); ps.setDate(2, to);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                list.add(new Object[]{ rs.getInt("employee_id"), rs.getString("full_name"), rs.getBigDecimal("revenue") });
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        finally { closeResources(rs, ps, conn); }
+        return list;
+    }
+
+    @Override
+    public List<Object[]> getDailyRevenue(java.sql.Date from, java.sql.Date to) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null; List<Object[]> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return list;
+            String sql = "SELECT DATE(created_at) AS d, COALESCE(SUM(total_amount),0) AS rev FROM Invoice " +
+                         "WHERE created_at BETWEEN ? AND ? GROUP BY DATE(created_at) ORDER BY d";
+            ps = conn.prepareStatement(sql); ps.setDate(1, from); ps.setDate(2, to); rs = ps.executeQuery();
+            while (rs.next()) list.add(new Object[]{ rs.getDate("d").toString(), rs.getBigDecimal("rev") });
+        } catch (Exception e) { e.printStackTrace(); } finally { closeResources(rs, ps, conn); }
+        return list;
+    }
+
+    @Override
+    public List<Object[]> getMonthlyRevenue(java.sql.Date from, java.sql.Date to) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null; List<Object[]> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return list;
+            String sql = "SELECT DATE_FORMAT(created_at,'%Y-%m') AS m, COALESCE(SUM(total_amount),0) AS rev FROM Invoice " +
+                         "WHERE created_at BETWEEN ? AND ? GROUP BY DATE_FORMAT(created_at,'%Y-%m') ORDER BY m";
+            ps = conn.prepareStatement(sql); ps.setDate(1, from); ps.setDate(2, to); rs = ps.executeQuery();
+            while (rs.next()) list.add(new Object[]{ rs.getString("m"), rs.getBigDecimal("rev") });
+        } catch (Exception e) { e.printStackTrace(); } finally { closeResources(rs, ps, conn); }
+        return list;
+    }
+
+    @Override
+    public List<Object[]> getYearlyRevenue(java.sql.Date from, java.sql.Date to) {
+        Connection conn = null; PreparedStatement ps = null; ResultSet rs = null; List<Object[]> list = new ArrayList<>();
+        try {
+            conn = DBConnection.getConnection(); if (conn == null) return list;
+            String sql = "SELECT YEAR(created_at) AS y, COALESCE(SUM(total_amount),0) AS rev FROM Invoice " +
+                         "WHERE created_at BETWEEN ? AND ? GROUP BY YEAR(created_at) ORDER BY y";
+            ps = conn.prepareStatement(sql); ps.setDate(1, from); ps.setDate(2, to); rs = ps.executeQuery();
+            while (rs.next()) list.add(new Object[]{ String.valueOf(rs.getInt("y")), rs.getBigDecimal("rev") });
+        } catch (Exception e) { e.printStackTrace(); } finally { closeResources(rs, ps, conn); }
+        return list;
     }
 
     private InvoiceDTO mapInvoice(ResultSet rs) throws Exception {
