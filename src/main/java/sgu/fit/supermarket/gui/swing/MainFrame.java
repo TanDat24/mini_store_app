@@ -5,6 +5,22 @@ import sgu.fit.supermarket.dto.EmployeeDTO;
 import sgu.fit.supermarket.dto.RoleDTO;
 import sgu.fit.supermarket.util.PermissionHelper;
 import sgu.fit.supermarket.util.UserSession;
+import sgu.fit.supermarket.bus.ProductService;
+import sgu.fit.supermarket.bus.CustomerService;
+import sgu.fit.supermarket.bus.InvoiceService;
+import sgu.fit.supermarket.bus.EmployeeService;
+import sgu.fit.supermarket.bus.SupplierService;
+import sgu.fit.supermarket.bus.CategoryService;
+import sgu.fit.supermarket.bus.ImportReceiptService;
+import sgu.fit.supermarket.bus.StatisticsService;
+import sgu.fit.supermarket.bus.impl.ProductServiceImpl;
+import sgu.fit.supermarket.bus.impl.CustomerServiceImpl;
+import sgu.fit.supermarket.bus.impl.InvoiceServiceImpl;
+import sgu.fit.supermarket.bus.impl.EmployeeServiceImpl;
+import sgu.fit.supermarket.bus.impl.SupplierServiceImpl;
+import sgu.fit.supermarket.bus.impl.CategoryServiceImpl;
+import sgu.fit.supermarket.bus.impl.ImportReceiptServiceImpl;
+import sgu.fit.supermarket.bus.impl.StatisticsServiceImpl;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,6 +29,11 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 public class MainFrame extends JFrame {
     private JPanel contentPanel;
@@ -20,6 +41,27 @@ public class MainFrame extends JFrame {
     private JLabel lblUserInfo;
     private JLabel lblTime;
     private JLabel lblEmployeeInfo;
+    
+    // Dashboard value labels
+    private JLabel lblCountProducts;
+    private JLabel lblCountCategories;
+    private JLabel lblCountCustomers;
+    private JLabel lblCountEmployees;
+    private JLabel lblCountInvoicesToday;
+    private JLabel lblRevenueToday;
+    private JLabel lblCountImports;
+    private JLabel lblCountSuppliers;
+    
+    // Services
+    private final ProductService productService = new ProductServiceImpl();
+    private final CustomerService customerService = new CustomerServiceImpl();
+    private final InvoiceService invoiceService = new InvoiceServiceImpl();
+    private final EmployeeService employeeService = new EmployeeServiceImpl();
+    private final SupplierService supplierService = new SupplierServiceImpl();
+    private final CategoryService categoryService = new CategoryServiceImpl();
+    private final ImportReceiptService importReceiptService = new ImportReceiptServiceImpl();
+    private final StatisticsService statisticsService = new StatisticsServiceImpl();
+    private final DecimalFormat currencyFormat = new DecimalFormat("#,### đ");
     
     // Current user info
     private AccountDTO currentAccount;
@@ -44,6 +86,60 @@ public class MainFrame extends JFrame {
     
     public MainFrame() {
         this(null, null, null);
+    }
+    
+    private void loadDashboardStats() {
+        try {
+            int products = 0;
+            java.util.List<sgu.fit.supermarket.dto.ProductDTO> allProducts = productService.getAllProducts();
+            if (allProducts != null) {
+                for (sgu.fit.supermarket.dto.ProductDTO p : allProducts) {
+                    if (!p.isDeleted()) products++;
+                }
+            }
+            int categories = safeSize(categoryService.getAllCategories());
+            int customers = safeSize(customerService.getAllCustomers());
+            int employees = safeSize(employeeService.findAll());
+            int imports = safeSize(importReceiptService.getAllImportReceipts());
+            int suppliers = safeSize(supplierService.getAllSuppliers());
+
+            // Today range
+            LocalDate today = LocalDate.now();
+            int invoicesToday = 0;
+            BigDecimal revenueToday = BigDecimal.ZERO;
+            java.util.List<sgu.fit.supermarket.dto.InvoiceDTO> invoices = invoiceService.getAllInvoices();
+            if (invoices != null) {
+                for (sgu.fit.supermarket.dto.InvoiceDTO inv : invoices) {
+                    Timestamp ts = inv.getCreatedAt();
+                    if (ts != null) {
+                        LocalDate d = ts.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                        if (today.equals(d)) {
+                            invoicesToday++;
+                            if (inv.getTotalAmount() != null) revenueToday = revenueToday.add(inv.getTotalAmount());
+                        }
+                    }
+                }
+            }
+
+            lblCountProducts.setText(String.valueOf(products));
+            lblCountCategories.setText(String.valueOf(categories));
+            lblCountCustomers.setText(String.valueOf(customers));
+            lblCountEmployees.setText(String.valueOf(employees));
+            lblCountImports.setText(String.valueOf(imports));
+            lblCountSuppliers.setText(String.valueOf(suppliers));
+            lblCountInvoicesToday.setText(String.valueOf(invoicesToday));
+            lblRevenueToday.setText(formatCurrency(revenueToday));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private int safeSize(java.util.List<?> list) { return list == null ? 0 : list.size(); }
+    private String formatCurrency(BigDecimal value) { return value == null ? "0 đ" : new DecimalFormat("#,### đ").format(value); }
+
+    // Expose public refresh for child frames to call after CRUD
+    public void refreshDashboardStats() {
+        SwingUtilities.invokeLater(this::loadDashboardStats);
     }
     
     public MainFrame(AccountDTO account, EmployeeDTO employee, RoleDTO role) {
@@ -361,15 +457,23 @@ public class MainFrame extends JFrame {
         statsPanel.setOpaque(false);
         statsPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
         
-        // Stat cards with icons
-        statsPanel.add(createStatCardWithIcon("Tổng sản phẩm", "1,234", new Color(76, 175, 80), "product.png"));
-        statsPanel.add(createStatCardWithIcon("Danh mục", "15", new Color(33, 150, 243), "category.png"));
-        statsPanel.add(createStatCardWithIcon("Khách hàng", "567", new Color(255, 152, 0), "customer.png"));
-        statsPanel.add(createStatCardWithIcon("Nhân viên", "12", new Color(156, 39, 176), "employee.png"));
-        statsPanel.add(createStatCardWithIcon("Hóa đơn hôm nay", "89", new Color(244, 67, 54), "invoice.png"));
-        statsPanel.add(createStatCardWithIcon("Doanh thu hôm nay", "15,500,000đ", new Color(0, 150, 136), "statistical.png"));
-        statsPanel.add(createStatCardWithIcon("Nhập hàng", "23", new Color(255, 87, 34), "import-product.png"));
-        statsPanel.add(createStatCardWithIcon("Nhà cung cấp", "8", new Color(121, 85, 72), "supplier.png"));
+        // Stat cards with icons (bind dynamic labels)
+        lblCountProducts = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Tổng sản phẩm", lblCountProducts, new Color(76, 175, 80), "product.png"));
+        lblCountCategories = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Danh mục", lblCountCategories, new Color(33, 150, 243), "category.png"));
+        lblCountCustomers = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Khách hàng", lblCountCustomers, new Color(255, 152, 0), "customer.png"));
+        lblCountEmployees = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Nhân viên", lblCountEmployees, new Color(156, 39, 176), "employee.png"));
+        lblCountInvoicesToday = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Hóa đơn hôm nay", lblCountInvoicesToday, new Color(244, 67, 54), "invoice.png"));
+        lblRevenueToday = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Doanh thu hôm nay", lblRevenueToday, new Color(0, 150, 136), "statistical.png"));
+        lblCountImports = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Nhập hàng", lblCountImports, new Color(255, 87, 34), "import-product.png"));
+        lblCountSuppliers = new JLabel("...");
+        statsPanel.add(createStatCardWithIconBound("Nhà cung cấp", lblCountSuppliers, new Color(121, 85, 72), "supplier.png"));
         
         // Quick actions
         JPanel quickActionsPanel = new JPanel();
@@ -423,6 +527,8 @@ public class MainFrame extends JFrame {
         dashboardPanel.add(welcomePanel, BorderLayout.SOUTH);
         
         contentPanel.add(dashboardPanel, "DASHBOARD");
+        // Load data-driven statistics
+        SwingUtilities.invokeLater(this::loadDashboardStats);
     }
     
     private JPanel createStatCard(String title, String value, Color color) {
@@ -491,6 +597,45 @@ public class MainFrame extends JFrame {
         
         card.add(content, BorderLayout.CENTER);
         
+        return card;
+    }
+
+    // Overload: bind external value label for dynamic updates
+    private JPanel createStatCardWithIconBound(String title, JLabel valueLabel, Color color, String iconName) {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setLayout(new BorderLayout());
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        JPanel iconPanel = new JPanel();
+        iconPanel.setOpaque(false);
+        iconPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        ImageIcon icon = loadIcon(iconName, 32, 32);
+        if (icon != null) {
+            JLabel iconLabel = new JLabel(icon);
+            iconPanel.add(iconLabel);
+        }
+
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BorderLayout());
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        titleLabel.setForeground(new Color(100, 100, 100));
+
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        valueLabel.setForeground(color);
+
+        content.add(iconPanel, BorderLayout.NORTH);
+        content.add(titleLabel, BorderLayout.CENTER);
+        content.add(valueLabel, BorderLayout.SOUTH);
+
+        card.add(content, BorderLayout.CENTER);
+
         return card;
     }
     
@@ -588,6 +733,7 @@ public class MainFrame extends JFrame {
         }
 
         SalesFrame salesPanel = new SalesFrame();
+        salesPanel.setMainFrame(this);
         salesPanel.setName("INVOICE");
         contentPanel.add(salesPanel, "INVOICE");
     }

@@ -15,6 +15,9 @@ import sgu.fit.supermarket.util.UserSession;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+import javax.swing.RowFilter;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -23,8 +26,11 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 
 public class SalesFrame extends JPanel {
+    private MainFrame mainFrame;
     private final ProductService productService;
     private final InvoiceService invoiceService;
     private final CustomerService customerService;
@@ -39,6 +45,10 @@ public class SalesFrame extends JPanel {
     private JSpinner spnUsePoints;
     private JLabel lblDiscountValue;
     private JLabel lblPayableValue;
+
+    // Formatting helpers
+    private final DecimalFormat currencyFormat = new DecimalFormat("#,### đ");
+    private final SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
 
     public SalesFrame() {
         this.productService = new ProductServiceImpl();
@@ -68,10 +78,13 @@ public class SalesFrame extends JPanel {
             txtSearch.setText("");
             reloadProducts();
         });
-        searchPanel.add(new JLabel("Từ khóa:"));
+        JButton btnInvoices = new JButton("Hóa đơn");
+        btnInvoices.addActionListener(e -> showInvoicesDialog());
+        searchPanel.add(new JLabel("Tìm sản phẩm:"));
         searchPanel.add(txtSearch);
         searchPanel.add(btnSearch);
         searchPanel.add(btnRefresh);
+        searchPanel.add(btnInvoices);
         header.add(searchPanel, BorderLayout.EAST);
         add(header, BorderLayout.NORTH);
 
@@ -214,6 +227,288 @@ public class SalesFrame extends JPanel {
         updateTotalsWithPoints();
     }
 
+    public void setMainFrame(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
+    }
+
+    private void showInvoicesDialog() {
+        JDialog dlg = new JDialog(SwingUtilities.getWindowAncestor(this), "Danh sách hóa đơn", Dialog.ModalityType.APPLICATION_MODAL);
+        dlg.setLayout(new BorderLayout());
+        dlg.setMinimumSize(new Dimension(900, 560));
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 10));
+        JLabel lblFind = new JLabel("Tìm hóa đơn:");
+        lblFind.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        top.add(lblFind);
+        JTextField txt = new JTextField(28);
+        txt.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        top.add(txt);
+        JButton btnClose = new JButton("Đóng");
+        btnClose.addActionListener(e -> dlg.dispose());
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 10));
+        right.add(btnClose);
+        JPanel north = new JPanel(new BorderLayout());
+        north.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        north.add(top, BorderLayout.CENTER);
+        north.add(right, BorderLayout.EAST);
+        dlg.add(north, BorderLayout.NORTH);
+
+        String[] cols = {"ID", "Khách hàng", "Nhân viên", "Ngày tạo", "Tổng tiền"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        JTable table = new JTable(model);
+        table.setRowHeight(26);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        JScrollPane sp = new JScrollPane(table);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        dlg.add(sp, BorderLayout.CENTER);
+
+        // Load data
+        List<InvoiceDTO> invoices = null;
+        try {
+            invoices = invoiceService.getAllInvoices();
+        } catch (Exception ignored) {}
+        if (invoices != null) {
+            for (InvoiceDTO inv : invoices) {
+                Object id = safe(() -> inv.getInvoiceId());
+                Object cid = safe(() -> inv.getCustomerId());
+                Object eid = safe(() -> inv.getEmployeeId());
+                Object created = safe(() -> inv.getCreatedAt());
+                Object total = safe(() -> inv.getTotalAmount());
+                model.addRow(new Object[]{
+                    id == null ? "" : id,
+                    cid == null ? "" : cid,
+                    eid == null ? "" : eid,
+                    created == null ? "" : (created instanceof Timestamp ? dateTimeFormat.format((Timestamp) created) : created.toString()),
+                    total == null ? "" : (total instanceof BigDecimal ? formatCurrency((BigDecimal) total) : total.toString())
+                });
+            }
+        }
+
+        // Sorter + filter
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+        txt.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void apply() {
+                String kw = txt.getText();
+                if (kw == null || kw.trim().isEmpty()) {
+                    sorter.setRowFilter(null);
+                } else {
+                    try {
+                        sorter.setRowFilter(RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(kw.trim())));
+                    } catch (Exception ex) {
+                        sorter.setRowFilter(null);
+                    }
+                }
+            }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { apply(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { apply(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { apply(); }
+        });
+
+        // Style table columns and zebra rows
+        styleTable(table, new int[]{4}, new int[]{80, 120, 120, 160, 140});
+
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
+    }
+
+    private static <T> T safe(java.util.concurrent.Callable<T> c) {
+        try { return c.call(); } catch (Exception e) { return null; }
+    }
+
+    private String formatCurrency(BigDecimal value) {
+        if (value == null) return "0 đ";
+        return currencyFormat.format(value);
+    }
+
+    private void tryResolveInvoiceId(InvoiceDTO newlySaved) {
+        try {
+            if (newlySaved == null) return;
+            // If ID already present, no need
+            Integer id = (Integer) safe(new java.util.concurrent.Callable<Integer>() {
+                public Integer call() { return newlySaved.getInvoiceId(); }
+            });
+            if (id != null && id > 0) return;
+
+            List<InvoiceDTO> all = invoiceService.getAllInvoices();
+            if (all == null || all.isEmpty()) return;
+
+            Timestamp created = newlySaved.getCreatedAt();
+            Integer empId = newlySaved.getEmployeeId();
+            BigDecimal total = newlySaved.getTotalAmount();
+            long bestScore = Long.MIN_VALUE;
+            InvoiceDTO best = null;
+            for (InvoiceDTO inv : all) {
+                // Prefer same employee
+                long score = 0;
+                Integer invEmpId = safe(new java.util.concurrent.Callable<Integer>() { public Integer call() { return inv.getEmployeeId(); } });
+                if (empId != null && invEmpId != null && empId.equals(invEmpId)) score += 1000;
+                // Close created time
+                Timestamp invCreated = safe(new java.util.concurrent.Callable<Timestamp>() { public Timestamp call() { return inv.getCreatedAt(); } });
+                if (created != null && invCreated != null) {
+                    long diff = Math.abs(invCreated.getTime() - created.getTime());
+                    // within 2 minutes preferred
+                    if (diff <= 120_000) score += (500 - Math.min(500, diff / 250));
+                }
+                // Same total amount
+                BigDecimal invTotal = safe(new java.util.concurrent.Callable<BigDecimal>() { public BigDecimal call() { return inv.getTotalAmount(); } });
+                if (total != null && invTotal != null && total.compareTo(invTotal) == 0) score += 800;
+                // Larger id is newer - small tie breaker
+                Integer invId = safe(new java.util.concurrent.Callable<Integer>() { public Integer call() { return inv.getInvoiceId(); } });
+                if (invId != null) score += Math.min(100, invId);
+
+                if (score > bestScore) { bestScore = score; best = inv; }
+            }
+            Integer bestId = null;
+            Timestamp bestCreated = null;
+            if (best != null) {
+                try { bestId = best.getInvoiceId(); } catch (Exception ignored) {}
+                try { bestCreated = best.getCreatedAt(); } catch (Exception ignored) {}
+            }
+            if (best != null && bestId != null && bestId > 0) {
+                newlySaved.setInvoiceId(bestId);
+                if (newlySaved.getCreatedAt() == null && bestCreated != null) {
+                    newlySaved.setCreatedAt(bestCreated);
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void styleTable(JTable table, int[] rightAlignCols, int[] preferredWidths) {
+        // Header background subtle and font already set per caller where needed
+        if (preferredWidths != null) {
+            for (int i = 0; i < Math.min(preferredWidths.length, table.getColumnCount()); i++) {
+                table.getColumnModel().getColumn(i).setPreferredWidth(preferredWidths[i]);
+            }
+        }
+        // Right align numeric columns
+        if (rightAlignCols != null) {
+            DefaultTableCellRenderer right = new DefaultTableCellRenderer();
+            right.setHorizontalAlignment(SwingConstants.RIGHT);
+            for (int col : rightAlignCols) {
+                if (col >= 0 && col < table.getColumnCount()) {
+                    table.getColumnModel().getColumn(col).setCellRenderer(right);
+                }
+            }
+        }
+        // Zebra striping
+        DefaultTableCellRenderer zebra = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 248, 248));
+                }
+                return c;
+            }
+        };
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            // Do not override explicit right alignment renderers
+            if (rightAlignCols != null) {
+                boolean isRight = false;
+                for (int r : rightAlignCols) if (r == i) { isRight = true; break; }
+                if (isRight) continue;
+            }
+            table.getColumnModel().getColumn(i).setCellRenderer(zebra);
+        }
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new Dimension(0, 0));
+    }
+
+    private void showInvoiceReceipt(InvoiceDTO invoice,
+                                    List<InvoiceDetailDTO> details,
+                                    BigDecimal subtotal,
+                                    BigDecimal discount,
+                                    BigDecimal payable,
+                                    CustomerDTO customer,
+                                    int pointsEarned,
+                                    int pointsUsed) {
+        JDialog dlg = new JDialog(SwingUtilities.getWindowAncestor(this), "Phiếu hóa đơn", Dialog.ModalityType.APPLICATION_MODAL);
+        dlg.setLayout(new BorderLayout());
+        dlg.setMinimumSize(new Dimension(500, 620));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBorder(BorderFactory.createEmptyBorder(14, 16, 8, 16));
+        JLabel title = new JLabel("HÓA ĐƠN BÁN HÀNG", SwingConstants.CENTER);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        header.add(title, BorderLayout.NORTH);
+        JPanel meta = new JPanel(new GridLayout(0, 1));
+        String invId = String.valueOf(safe(() -> invoice.getInvoiceId()));
+        String emp = String.valueOf(safe(() -> invoice.getEmployeeId()));
+        String cus = customer == null ? "Bán lẻ" : (customer.getFullName() + " - " + customer.getPhone());
+        String createdAt = String.valueOf(safe(() -> invoice.getCreatedAt()));
+        meta.add(new JLabel("Mã hóa đơn: " + (invId == null ? "(mới)" : invId)));
+        meta.add(new JLabel("Khách hàng: " + cus));
+        meta.add(new JLabel("Nhân viên: " + (emp == null ? "" : emp)));
+        String createdShown;
+        if (invoice.getCreatedAt() != null) {
+            createdShown = dateTimeFormat.format(invoice.getCreatedAt());
+        } else {
+            createdShown = (createdAt == null ? "" : createdAt);
+        }
+        meta.add(new JLabel("Ngày tạo: " + createdShown));
+        header.add(meta, BorderLayout.CENTER);
+        dlg.add(header, BorderLayout.NORTH);
+
+        String[] cols = {"#", "Sản phẩm", "SL", "Đơn giá", "Thành tiền"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        JTable table = new JTable(model);
+        table.setRowHeight(24);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        int idx = 1;
+        for (InvoiceDetailDTO d : details) {
+            String productName = null;
+            try {
+                ProductDTO p = productService.getProductById(d.getProductId());
+                if (p != null) productName = p.getProductName();
+            } catch (Exception ignored) {}
+            if (productName == null) productName = "SP#" + d.getProductId();
+            BigDecimal line = d.getPrice().multiply(BigDecimal.valueOf(d.getQuantity()));
+            model.addRow(new Object[]{idx++, productName, d.getQuantity(), formatCurrency(d.getPrice()), formatCurrency(line)});
+        }
+        JScrollPane sp = new JScrollPane(table);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        dlg.add(sp, BorderLayout.CENTER);
+        styleTable(table, new int[]{2,3,4}, new int[]{40, 320, 60, 120, 140});
+
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBorder(BorderFactory.createEmptyBorder(10, 16, 14, 16));
+        JPanel totals = new JPanel(new GridLayout(0, 2, 8, 6));
+        JLabel lbSubtotal = new JLabel("Tổng tiền hàng:");
+        JLabel lbSubtotalV = new JLabel(formatCurrency(subtotal), SwingConstants.RIGHT);
+        JLabel lbDiscount = new JLabel("Giảm (điểm):");
+        JLabel lbDiscountV = new JLabel("-" + formatCurrency(discount) + (pointsUsed > 0 ? " (" + pointsUsed + " điểm)" : ""), SwingConstants.RIGHT);
+        JLabel lbPayable = new JLabel("Phải trả:");
+        lbPayable.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JLabel lbPayableV = new JLabel(formatCurrency(payable), SwingConstants.RIGHT);
+        lbPayableV.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        totals.add(lbSubtotal); totals.add(lbSubtotalV);
+        totals.add(lbDiscount); totals.add(lbDiscountV);
+        totals.add(lbPayable); totals.add(lbPayableV);
+        if (customer != null) {
+            totals.add(new JLabel("Điểm cộng:"));
+            totals.add(new JLabel("+" + pointsEarned, SwingConstants.RIGHT));
+        }
+        footer.add(totals, BorderLayout.CENTER);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JButton btnClose = new JButton("Đóng");
+        btnClose.addActionListener(e -> dlg.dispose());
+        actions.add(btnClose);
+        footer.add(actions, BorderLayout.SOUTH);
+        dlg.add(footer, BorderLayout.SOUTH);
+
+        dlg.setLocationRelativeTo(this);
+        dlg.setVisible(true);
+    }
+
     private void reloadProducts() {
         productsPanel.removeAll();
         String keyword = txtSearch.getText().trim();
@@ -245,7 +540,7 @@ public class SalesFrame extends JPanel {
         info.setOpaque(false);
         info.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
         info.add(new JLabel(product.getProductName()));
-        info.add(new JLabel("Giá: " + product.getPrice()));
+        info.add(new JLabel("Giá: " + formatCurrency(product.getPrice())));
         info.add(new JLabel("Kho: " + product.getStock()));
         card.add(info, BorderLayout.CENTER);
 
@@ -325,7 +620,7 @@ public class SalesFrame extends JPanel {
             BigDecimal line = new BigDecimal(String.valueOf(cartModel.getValueAt(i, 4)));
             total = total.add(line);
         }
-        lblTotal.setText("Tổng: " + total);
+        lblTotal.setText("Tổng: " + formatCurrency(total));
     }
     
     // Update totals and allowed redeem points, and show discount & payable labels
@@ -336,7 +631,7 @@ public class SalesFrame extends JPanel {
             BigDecimal line = new BigDecimal(String.valueOf(cartModel.getValueAt(i, 4)));
             subtotal = subtotal.add(line);
         }
-        lblTotal.setText("Tổng: " + subtotal);
+        lblTotal.setText("Tổng: " + formatCurrency(subtotal));
         
         // Determine max usable points = min(customer points, floor(subtotal/1000))
         int customerPoints = 0;
@@ -355,8 +650,8 @@ public class SalesFrame extends JPanel {
         BigDecimal discount = new BigDecimal(usePoints).multiply(new BigDecimal(1000));
         if (discount.compareTo(subtotal) > 0) discount = subtotal;
         BigDecimal payable = subtotal.subtract(discount);
-        lblDiscountValue.setText("Giảm: " + discount);
-        lblPayableValue.setText("Phải trả: " + payable);
+        lblDiscountValue.setText("Giảm: " + formatCurrency(discount));
+        lblPayableValue.setText("Phải trả: " + formatCurrency(payable));
     }
 
     private void clearCart() {
@@ -416,39 +711,40 @@ public class SalesFrame extends JPanel {
             BigDecimal payableAtCheckout = total.subtract(discountAtCheckout);
             invoice.setTotalAmount(payableAtCheckout);
 
+            // Confirm checkout
+            String confirmMsg = "Xác nhận thanh toán?";
+            int choice = JOptionPane.showConfirmDialog(this, confirmMsg, "Xác nhận", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (choice != JOptionPane.OK_OPTION) {
+                return;
+            }
+
             boolean ok = invoiceService.createInvoice(invoice, details);
             if (ok) {
-                // Cộng điểm cho khách hàng nếu có
+                // Try resolve the saved invoice id (if service didn't populate it)
+                tryResolveInvoiceId(invoice);
+                int pointsToAdd = 0;
+                for (InvoiceDetailDTO detail : details) {
+                    pointsToAdd += detail.getQuantity();
+                }
+
+                showInvoiceReceipt(invoice, details, total, discountAtCheckout, payableAtCheckout, selectedCustomer, pointsToAdd, pointsToUseAtCheckout);
+
                 if (selectedCustomer != null) {
-                    // Tính điểm: mỗi sản phẩm = 1 điểm (tính theo số lượng sản phẩm)
-                    int pointsToAdd = 0;
-                    for (InvoiceDetailDTO detail : details) {
-                        pointsToAdd += detail.getQuantity(); // Mỗi sản phẩm cộng 1 điểm
+                    if (pointsToUseAtCheckout > 0) {
+                        customerService.addPoints(selectedCustomer.getCustomerId(), -pointsToUseAtCheckout);
                     }
-                    
-                    // Trừ điểm nếu có dùng (đã giới hạn ở UI)
-                    int pointsToUse = (Integer) spnUsePoints.getValue();
-                    if (pointsToUse > 0) {
-                        customerService.addPoints(selectedCustomer.getCustomerId(), -pointsToUse);
-                    }
-                    
                     if (pointsToAdd > 0) {
                         customerService.addPoints(selectedCustomer.getCustomerId(), pointsToAdd);
                     }
-                    JOptionPane.showMessageDialog(this, 
-                        "Thanh toán thành công!\nĐã trừ " + pointsToUse + " điểm và cộng " + pointsToAdd + " điểm cho khách hàng " + selectedCustomer.getFullName() + ".");
-                    
-                    // Reset spinner sau khi thanh toán
                     spnUsePoints.setValue(0);
-                    
-                    // Refresh customer list
                     cboCustomer.removeAllItems();
                     cboCustomer.addItem(null);
                     loadCustomers();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Thanh toán thành công!");
                 }
                 clearCart();
+                if (mainFrame != null) {
+                    mainFrame.refreshDashboardStats();
+                }
             } else {
                 JOptionPane.showMessageDialog(this, "Thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
