@@ -220,7 +220,7 @@ public class MainFrame extends JFrame {
         btnAccount = createMenuButtonWithIcon("Tài khoản", "ACCOUNT", "account.png");
         btnInvoice = createMenuButtonWithIcon("Hóa đơn", "INVOICE", "invoice.png");
         btnImport = createMenuButtonWithIcon("Nhập hàng", "IMPORT", "import-product.png");
-        btnStatistics = createMenuButtonWithIcon("Thống kê doanh thu", "STATISTICS", "statistical.png");
+        btnStatistics = createMenuButtonWithIcon("Thống kê", "STATISTICS", "statistical.png");
         
         menuPanel.add(btnDashboard);
         menuPanel.add(Box.createVerticalStrut(10));
@@ -705,39 +705,16 @@ public class MainFrame extends JFrame {
     }
     
     private void createStatisticsPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        panel.setBackground(new Color(245, 245, 245));
-        
-        // Header with icon
-        ImageIcon statsIcon = loadIcon("statistical.png", 32, 32);
-        JLabel label = new JLabel(" Thống kê Doanh thu", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        if (statsIcon != null) {
-            label.setIcon(statsIcon);
-            label.setIconTextGap(10);
+        // Avoid duplicate
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "STATISTICS".equals(((JPanel) comp).getName())) {
+                return;
+            }
         }
-        
-        // Content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setOpaque(false);
-        contentPanel.setLayout(new BorderLayout());
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<h2 style='color: #333;'>📊 Thống kê Doanh thu</h2>" +
-            "<p style='font-size: 16px; color: #666; margin-top: 20px;'>Chức năng thống kê doanh thu sẽ được tích hợp vào đây.</p>" +
-            "<p style='font-size: 14px; color: #999; margin-top: 10px;'>Bao gồm: Thống kê theo ngày, tháng, năm, sản phẩm bán chạy, doanh thu theo nhân viên...</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        contentPanel.add(infoLabel, BorderLayout.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(contentPanel, BorderLayout.CENTER);
-        
-        this.contentPanel.add(panel, "STATISTICS");
+
+        StatisticsFrame stats = new StatisticsFrame();
+        stats.setName("STATISTICS");
+        this.contentPanel.add(stats, "STATISTICS");
     }
 
     private void createAccountPanel() {
