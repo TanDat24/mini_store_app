@@ -512,7 +512,104 @@ public class MainFrame extends JFrame {
         });
     }
     
-    private void showCard(String cardName) {
+    
+    private void createProductPanel() {
+        // Check if PRODUCT card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "PRODUCT".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        ProductFrame productPanel = new ProductFrame();
+        productPanel.setName("PRODUCT");
+        productPanel.setMainFrame(this); // Set reference to MainFrame
+        contentPanel.add(productPanel, "PRODUCT");
+    }
+    
+    private void createCategoryPanel() {
+        // Check if CATEGORY card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "CATEGORY".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        CategoryFrame categoryPanel = new CategoryFrame();
+        categoryPanel.setName("CATEGORY");
+        contentPanel.add(categoryPanel, "CATEGORY");
+    }
+    
+    private void createSupplierPanel() {
+        // Check if SUPPLIER card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "SUPPLIER".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        SupplierFrame supplierPanel = new SupplierFrame();
+        supplierPanel.setName("SUPPLIER");
+        contentPanel.add(supplierPanel, "SUPPLIER");
+    }
+    
+    private void createCustomerPanel() {
+        // Check if CUSTOMER card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "CUSTOMER".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        CustomerFrame customerPanel = new CustomerFrame();
+        customerPanel.setName("CUSTOMER");
+        contentPanel.add(customerPanel, "CUSTOMER");
+    }
+    
+    private void createEmployeePanel() {
+        // Check if EMPLOYEE card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "EMPLOYEE".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        EmployeeFrame employeePanel = new EmployeeFrame();
+        employeePanel.setName("EMPLOYEE");
+        contentPanel.add(employeePanel, "EMPLOYEE");
+    }
+    
+    private void createInvoicePanel() {
+        // Replace placeholder with SalesFrame
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "INVOICE".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        SalesFrame salesPanel = new SalesFrame();
+        salesPanel.setName("INVOICE");
+        contentPanel.add(salesPanel, "INVOICE");
+    }
+    
+    private void createImportPanel() {
+        // Check if IMPORT card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "IMPORT".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        ImportFrame importPanel = new ImportFrame();
+        importPanel.setName("IMPORT");
+        importPanel.setMainFrame(this); // Set reference to MainFrame
+        contentPanel.add(importPanel, "IMPORT");
+    }
+    
+    /**
+     * Public method to show a card (can be called from child frames)
+     */
+    public void showCard(String cardName) {
         // Kiểm tra quyền trước khi hiển thị
         if (currentRole != null) {
             if (cardName.equals("PRODUCT") && !PermissionHelper.canManageProduct(currentRole)) {
@@ -581,107 +678,30 @@ public class MainFrame extends JFrame {
         cardLayout.show(contentPanel, cardName);
     }
     
-    private void createProductPanel() {
-        // Check if PRODUCT card already exists
+    /**
+     * Refresh ProductFrame if it exists
+     */
+    public void refreshProductFrame() {
         for (Component comp : contentPanel.getComponents()) {
-            if (comp instanceof JPanel && "PRODUCT".equals(((JPanel) comp).getName())) {
-                return;
+            if (comp instanceof ProductFrame) {
+                ProductFrame productFrame = (ProductFrame) comp;
+                productFrame.refreshTable();
+                break;
             }
         }
-
-        ProductFrame productPanel = new ProductFrame();
-        productPanel.setName("PRODUCT");
-        contentPanel.add(productPanel, "PRODUCT");
     }
     
-    private void createCategoryPanel() {
-        // Check if CATEGORY card already exists
+    /**
+     * Refresh ImportFrame if it exists
+     */
+    public void refreshImportFrame() {
         for (Component comp : contentPanel.getComponents()) {
-            if (comp instanceof JPanel && "CATEGORY".equals(((JPanel) comp).getName())) {
-                return;
+            if (comp instanceof ImportFrame) {
+                ImportFrame importFrame = (ImportFrame) comp;
+                importFrame.refreshProductOptions();
+                break;
             }
         }
-
-        CategoryFrame categoryPanel = new CategoryFrame();
-        categoryPanel.setName("CATEGORY");
-        contentPanel.add(categoryPanel, "CATEGORY");
-    }
-    
-    private void createSupplierPanel() {
-        // Check if SUPPLIER card already exists
-        for (Component comp : contentPanel.getComponents()) {
-            if (comp instanceof JPanel && "SUPPLIER".equals(((JPanel) comp).getName())) {
-                return;
-            }
-        }
-
-        SupplierFrame supplierPanel = new SupplierFrame();
-        supplierPanel.setName("SUPPLIER");
-        contentPanel.add(supplierPanel, "SUPPLIER");
-    }
-    
-    private void createCustomerPanel() {
-        // Check if CUSTOMER card already exists
-        for (Component comp : contentPanel.getComponents()) {
-            if (comp instanceof JPanel && "CUSTOMER".equals(((JPanel) comp).getName())) {
-                return;
-            }
-        }
-
-        CustomerFrame customerPanel = new CustomerFrame();
-        customerPanel.setName("CUSTOMER");
-        contentPanel.add(customerPanel, "CUSTOMER");
-    }
-    
-    private void createEmployeePanel() {
-        // Check if EMPLOYEE card already exists
-        for (Component comp : contentPanel.getComponents()) {
-            if (comp instanceof JPanel && "EMPLOYEE".equals(((JPanel) comp).getName())) {
-                return;
-            }
-        }
-
-        EmployeeFrame employeePanel = new EmployeeFrame();
-        employeePanel.setName("EMPLOYEE");
-        contentPanel.add(employeePanel, "EMPLOYEE");
-    }
-    
-    private void createInvoicePanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("🧾 Quản lý Hóa đơn", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý hóa đơn sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "INVOICE");
-    }
-    
-    private void createImportPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("📥 Quản lý Nhập hàng", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý nhập hàng sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "IMPORT");
     }
     
     private void createStatisticsPanel() {

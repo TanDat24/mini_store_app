@@ -18,6 +18,9 @@ import java.util.List;
 
 public class ProductFrame extends JPanel {
     private final ProductService productService;
+    
+    // Reference to MainFrame for navigation
+    private MainFrame mainFrame;
 
     private JTable table;
     private DefaultTableModel tableModel;
@@ -197,6 +200,13 @@ public class ProductFrame extends JPanel {
             });
         }
     }
+    
+    /**
+     * Public method to refresh the product table data
+     */
+    public void refreshTable() {
+        loadTableData();
+    }
 
     private void searchProducts() {
         String keyword = txtSearch.getText();
@@ -285,9 +295,21 @@ public class ProductFrame extends JPanel {
             JOptionPane.showMessageDialog(this, "Xóa sản phẩm thành công!");
             loadTableData();
             clearForm();
+            
+            // Refresh ImportFrame nếu đang mở để cập nhật danh sách sản phẩm
+            if (mainFrame != null) {
+                mainFrame.refreshImportFrame();
+            }
         } else {
             JOptionPane.showMessageDialog(this, "Xóa sản phẩm thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    /**
+     * Set reference to MainFrame for navigation
+     */
+    public void setMainFrame(MainFrame mainFrame) {
+        this.mainFrame = mainFrame;
     }
 
     private ProductDTO readForm(boolean requireId) throws Exception {

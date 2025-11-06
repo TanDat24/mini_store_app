@@ -125,4 +125,43 @@ public class ProductServiceImpl implements ProductService {
             return false;
         }
     }
+    
+    @Override
+    public boolean updateProductStock(int productId, int quantity) {
+        try {
+            if (productId <= 0 || quantity <= 0) {
+                return false;
+            }
+            
+            // Kiểm tra sản phẩm có tồn tại không
+            ProductDTO existingProduct = productDAO.findById(productId);
+            if (existingProduct == null) {
+                return false;
+            }
+            
+            return productDAO.updateStock(productId, quantity);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean decreaseProductStock(int productId, int quantity) {
+        try {
+            if (productId <= 0 || quantity <= 0) {
+                return false;
+            }
+            
+            ProductDTO existingProduct = productDAO.findById(productId);
+            if (existingProduct == null) {
+                return false;
+            }
+            
+            return productDAO.decreaseStock(productId, quantity);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

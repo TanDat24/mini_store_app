@@ -11,4 +11,5 @@ public interface EmployeeDAO {
     boolean insert(EmployeeDTO employee);
     boolean update(EmployeeDTO employee);
     boolean delete(int employeeId);
+    int countInvoicesByEmployeeId(int employeeId);
 }

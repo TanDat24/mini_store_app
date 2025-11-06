@@ -45,4 +45,17 @@ public interface ProductService {
      * @return true nếu xóa thành công, false nếu thất bại
      */
     boolean deleteProduct(int productId);
+    
+    /**
+     * Cập nhật số lượng tồn kho của sản phẩm (tăng thêm)
+     * @param productId ID của sản phẩm
+     * @param quantity Số lượng cần tăng thêm
+     * @return true nếu cập nhật thành công, false nếu thất bại
+     */
+    boolean updateProductStock(int productId, int quantity);
+    
+    /**
+     * Giảm số lượng tồn kho (bán hàng)
+     */
+    boolean decreaseProductStock(int productId, int quantity);
 }

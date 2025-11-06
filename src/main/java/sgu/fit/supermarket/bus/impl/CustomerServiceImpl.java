@@ -60,4 +60,18 @@ public class CustomerServiceImpl implements CustomerService {
             return customerDAO.delete(customerId);
         } catch (Exception e) { e.printStackTrace(); return false; }
     }
+
+    @Override
+    public boolean addPoints(int customerId, int points) {
+        try {
+            if (customerId <= 0) return false;
+            if (points == 0) return true; // nothing to do
+            CustomerDTO existing = customerDAO.findById(customerId);
+            if (existing == null) return false;
+            return customerDAO.addPoints(customerId, points);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

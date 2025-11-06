@@ -207,4 +207,30 @@ public class EmployeeDAOImpl implements EmployeeDAO {
             try { if (conn != null) conn.close(); } catch (Exception ignored) {}
         }
     }
+
+    @Override
+    public int countInvoicesByEmployeeId(int employeeId) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = DBConnection.getConnection();
+            if (conn == null) return 0;
+            String sql = "SELECT COUNT(*) as count FROM Invoice WHERE employee_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, employeeId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+            return 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception ignored) {}
+            try { if (ps != null) ps.close(); } catch (Exception ignored) {}
+            try { if (conn != null) conn.close(); } catch (Exception ignored) {}
+        }
+    }
 }
