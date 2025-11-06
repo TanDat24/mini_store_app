@@ -25,7 +25,7 @@ public class ProductDAOImpl implements ProductDAO {
                 return products;
             }
             
-            String sql = "SELECT * FROM Product ORDER BY product_id";
+            String sql = "SELECT * FROM Product WHERE is_deleted = 0 ORDER BY product_id";
             ps = conn.prepareStatement(sql);
             rs = ps.executeQuery();
             
@@ -55,7 +55,7 @@ public class ProductDAOImpl implements ProductDAO {
                 return null;
             }
             
-            String sql = "SELECT * FROM Product WHERE product_id = ?";
+            String sql = "SELECT * FROM Product WHERE product_id = ? AND is_deleted = 0";
             ps = conn.prepareStatement(sql);
             ps.setInt(1, productId);
             
@@ -87,7 +87,7 @@ public class ProductDAOImpl implements ProductDAO {
                 return products;
             }
             
-            String sql = "SELECT * FROM Product WHERE product_name LIKE ? ORDER BY product_id";
+            String sql = "SELECT * FROM Product WHERE product_name LIKE ? AND is_deleted = 0 ORDER BY product_id";
             ps = conn.prepareStatement(sql);
             ps.setString(1, "%" + productName + "%");
             
@@ -118,8 +118,8 @@ public class ProductDAOImpl implements ProductDAO {
                 return false;
             }
             
-            String sql = "INSERT INTO Product (product_name, image_path, unit, price, stock, category_id, supplier_id) " +
-                         "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO Product (product_name, image_path, unit, price, stock, category_id, supplier_id, is_deleted) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             ps = conn.prepareStatement(sql);
             ps.setString(1, product.getProductName());
             ps.setString(2, product.getImagePath());
@@ -128,6 +128,7 @@ public class ProductDAOImpl implements ProductDAO {
             ps.setInt(5, product.getStock());
             ps.setInt(6, product.getCategoryId());
             ps.setInt(7, product.getSupplierId());
+            ps.setInt(8, product.isDeleted() ? 1 : 0);
             
             int result = ps.executeUpdate();
             return result > 0;
@@ -152,7 +153,7 @@ public class ProductDAOImpl implements ProductDAO {
             }
             
             String sql = "UPDATE Product SET product_name = ?, image_path = ?, unit = ?, price = ?, " +
-                         "stock = ?, category_id = ?, supplier_id = ? WHERE product_id = ?";
+                         "stock = ?, category_id = ?, supplier_id = ?, is_deleted = ? WHERE product_id = ?";
             ps = conn.prepareStatement(sql);
             ps.setString(1, product.getProductName());
             ps.setString(2, product.getImagePath());
@@ -161,7 +162,8 @@ public class ProductDAOImpl implements ProductDAO {
             ps.setInt(5, product.getStock());
             ps.setInt(6, product.getCategoryId());
             ps.setInt(7, product.getSupplierId());
-            ps.setInt(8, product.getProductId());
+            ps.setInt(8, product.isDeleted() ? 1 : 0);
+            ps.setInt(9, product.getProductId());
             
             int result = ps.executeUpdate();
             return result > 0;
@@ -185,9 +187,37 @@ public class ProductDAOImpl implements ProductDAO {
                 return false;
             }
             
-            String sql = "DELETE FROM Product WHERE product_id = ?";
+            // Soft delete: set is_deleted = 1 instead of DELETE
+            String sql = "UPDATE Product SET is_deleted = 1 WHERE product_id = ?";
             ps = conn.prepareStatement(sql);
             ps.setInt(1, productId);
+            
+            int result = ps.executeUpdate();
+            return result > 0;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            closeResources(null, ps, conn);
+        }
+    }
+    
+    @Override
+    public boolean updateStock(int productId, int quantity) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        
+        try {
+            conn = DBConnection.getConnection();
+            if (conn == null) {
+                return false;
+            }
+            
+            String sql = "UPDATE Product SET stock = stock + ? WHERE product_id = ? AND is_deleted = 0";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, quantity);
+            ps.setInt(2, productId);
             
             int result = ps.executeUpdate();
             return result > 0;
@@ -211,6 +241,7 @@ public class ProductDAOImpl implements ProductDAO {
         product.setUnit(rs.getString("unit"));
         product.setPrice(rs.getBigDecimal("price"));
         product.setStock(rs.getInt("stock"));
+        product.setDeleted(rs.getInt("is_deleted") == 1);
         product.setCategoryId(rs.getInt("category_id"));
         product.setSupplierId(rs.getInt("supplier_id"));
         return product;

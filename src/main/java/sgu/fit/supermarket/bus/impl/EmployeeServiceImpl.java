@@ -78,7 +78,17 @@ public class EmployeeServiceImpl implements EmployeeService {
             if (employeeId <= 0) return false;
             EmployeeDTO existing = employeeDAO.findById(employeeId);
             if (existing == null) return false;
+            
+            // Check if employee has invoices before deletion
+            int invoiceCount = employeeDAO.countInvoicesByEmployeeId(employeeId);
+            if (invoiceCount > 0) {
+                throw new RuntimeException("Không thể xóa nhân viên này vì đã có " + invoiceCount + " hóa đơn liên quan. Vui lòng xóa các hóa đơn trước.");
+            }
+            
             return employeeDAO.delete(employeeId);
+        } catch (RuntimeException e) {
+            // Re-throw RuntimeExceptions (including our custom message)
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
             return false;

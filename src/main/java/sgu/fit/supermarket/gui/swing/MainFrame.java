@@ -512,74 +512,6 @@ public class MainFrame extends JFrame {
         });
     }
     
-    private void showCard(String cardName) {
-        // Kiểm tra quyền trước khi hiển thị
-        if (currentRole != null) {
-            if (cardName.equals("PRODUCT") && !PermissionHelper.canManageProduct(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("CATEGORY") && !PermissionHelper.canManageProduct(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("SUPPLIER") && !PermissionHelper.canManageProduct(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("EMPLOYEE") && !PermissionHelper.canManageEmployee(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("IMPORT") && !PermissionHelper.canImportProducts(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("INVOICE") && !PermissionHelper.canCreateInvoice(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("STATISTICS") && !PermissionHelper.canViewRevenueStats(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            if (cardName.equals("ACCOUNT") && !PermissionHelper.isManager(currentRole)) {
-                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
-                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-        }
-        
-        // Create panel if not exists
-        if (cardName.equals("PRODUCT")) {
-            createProductPanel();
-        } else if (cardName.equals("CATEGORY")) {
-            createCategoryPanel();
-        } else if (cardName.equals("SUPPLIER")) {
-            createSupplierPanel();
-        } else if (cardName.equals("CUSTOMER")) {
-            createCustomerPanel();
-        } else if (cardName.equals("EMPLOYEE")) {
-            createEmployeePanel();
-        } else if (cardName.equals("INVOICE")) {
-            createInvoicePanel();
-        } else if (cardName.equals("IMPORT")) {
-            createImportPanel();
-        } else if (cardName.equals("STATISTICS")) {
-            createStatisticsPanel();
-        } else if (cardName.equals("ACCOUNT")) {
-            createAccountPanel();
-        }
-        
-        cardLayout.show(contentPanel, cardName);
-    }
     
     private void createProductPanel() {
         // Check if PRODUCT card already exists
@@ -591,6 +523,7 @@ public class MainFrame extends JFrame {
 
         ProductFrame productPanel = new ProductFrame();
         productPanel.setName("PRODUCT");
+        productPanel.setMainFrame(this); // Set reference to MainFrame
         contentPanel.add(productPanel, "PRODUCT");
     }
     
@@ -666,22 +599,115 @@ public class MainFrame extends JFrame {
     }
     
     private void createImportPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        // Check if IMPORT card already exists
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "IMPORT".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        ImportFrame importPanel = new ImportFrame();
+        importPanel.setName("IMPORT");
+        importPanel.setMainFrame(this); // Set reference to MainFrame
+        contentPanel.add(importPanel, "IMPORT");
+    }
+    
+    /**
+     * Public method to show a card (can be called from child frames)
+     */
+    public void showCard(String cardName) {
+        // Kiểm tra quyền trước khi hiển thị
+        if (currentRole != null) {
+            if (cardName.equals("PRODUCT") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("CATEGORY") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("SUPPLIER") && !PermissionHelper.canManageProduct(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("EMPLOYEE") && !PermissionHelper.canManageEmployee(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("IMPORT") && !PermissionHelper.canImportProducts(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("INVOICE") && !PermissionHelper.canCreateInvoice(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("STATISTICS") && !PermissionHelper.canViewRevenueStats(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (cardName.equals("ACCOUNT") && !PermissionHelper.isManager(currentRole)) {
+                JOptionPane.showMessageDialog(this, "Bạn không có quyền truy cập chức năng này!", 
+                    "Không có quyền", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
         
-        JLabel label = new JLabel("📥 Quản lý Nhập hàng", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
+        // Create panel if not exists
+        if (cardName.equals("PRODUCT")) {
+            createProductPanel();
+        } else if (cardName.equals("CATEGORY")) {
+            createCategoryPanel();
+        } else if (cardName.equals("SUPPLIER")) {
+            createSupplierPanel();
+        } else if (cardName.equals("CUSTOMER")) {
+            createCustomerPanel();
+        } else if (cardName.equals("EMPLOYEE")) {
+            createEmployeePanel();
+        } else if (cardName.equals("INVOICE")) {
+            createInvoicePanel();
+        } else if (cardName.equals("IMPORT")) {
+            createImportPanel();
+        } else if (cardName.equals("STATISTICS")) {
+            createStatisticsPanel();
+        } else if (cardName.equals("ACCOUNT")) {
+            createAccountPanel();
+        }
         
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý nhập hàng sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "IMPORT");
+        cardLayout.show(contentPanel, cardName);
+    }
+    
+    /**
+     * Refresh ProductFrame if it exists
+     */
+    public void refreshProductFrame() {
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof ProductFrame) {
+                ProductFrame productFrame = (ProductFrame) comp;
+                productFrame.refreshTable();
+                break;
+            }
+        }
+    }
+    
+    /**
+     * Refresh ImportFrame if it exists
+     */
+    public void refreshImportFrame() {
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof ImportFrame) {
+                ImportFrame importFrame = (ImportFrame) comp;
+                importFrame.refreshProductOptions();
+                break;
+            }
+        }
     }
     
     private void createStatisticsPanel() {

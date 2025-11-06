@@ -9,6 +9,7 @@ public class ProductDTO {
     private String unit;
     private BigDecimal price;
     private int stock;
+    private boolean isDeleted;
     private int categoryId;
     private int supplierId;
 
@@ -22,6 +23,7 @@ public class ProductDTO {
         this.unit = unit;
         this.price = price;
         this.stock = stock;
+        this.isDeleted = false;
         this.categoryId = categoryId;
         this.supplierId = supplierId;
     }
@@ -88,6 +90,14 @@ public class ProductDTO {
 
     public void setSupplierId(int supplierId) {
         this.supplierId = supplierId;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
     }
 
     @Override

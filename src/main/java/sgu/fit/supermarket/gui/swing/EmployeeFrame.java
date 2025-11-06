@@ -123,12 +123,12 @@ public class EmployeeFrame extends JPanel {
         JButton btnClear = new JButton("Làm mới");
         JButton btnAdd = new JButton("Thêm");
         JButton btnUpdate = new JButton("Cập nhật");
-        JButton btnDelete = new JButton("Xóa");
+//        JButton btnDelete = new JButton("Xóa");
         btnClear.addActionListener(e -> clearForm());
         btnAdd.addActionListener(e -> add());
         btnUpdate.addActionListener(e -> update());
-        btnDelete.addActionListener(e -> deleteItem());
-        footer.add(btnClear); footer.add(btnAdd); footer.add(btnUpdate); footer.add(btnDelete);
+//        btnDelete.addActionListener(e -> deleteItem());
+//        footer.add(btnClear); footer.add(btnAdd); footer.add(btnUpdate); footer.add(btnDelete);
         return footer;
     }
 
@@ -223,9 +223,32 @@ public class EmployeeFrame extends JPanel {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa nhân viên này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
         int id = Integer.parseInt(txtId.getText().trim());
-        boolean ok = employeeService.delete(id);
-        if (ok) { JOptionPane.showMessageDialog(this, "Xóa nhân viên thành công!"); loadTableData(); clearForm(); }
-        else { JOptionPane.showMessageDialog(this, "Xóa nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE); }
+        try {
+            boolean ok = employeeService.delete(id);
+            if (ok) { 
+                JOptionPane.showMessageDialog(this, "Xóa nhân viên thành công!"); 
+                loadTableData(); 
+                clearForm(); 
+            } else { 
+                JOptionPane.showMessageDialog(this, "Xóa nhân viên thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE); 
+            }
+        } catch (RuntimeException e) {
+            // Display the error message from the service layer
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Không thể xóa")) {
+                JOptionPane.showMessageDialog(this, errorMessage, "Không thể xóa", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Xóa nhân viên thất bại: " + (errorMessage != null ? errorMessage : "Lỗi không xác định"), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception e) {
+            // Handle other exceptions
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("Không thể xóa")) {
+                JOptionPane.showMessageDialog(this, errorMessage, "Không thể xóa", JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Xóa nhân viên thất bại: " + (errorMessage != null ? errorMessage : "Lỗi không xác định"), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private EmployeeDTO readForm(boolean requireId) throws Exception {
