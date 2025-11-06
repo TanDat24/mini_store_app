@@ -145,4 +145,23 @@ public class ProductServiceImpl implements ProductService {
             return false;
         }
     }
+    
+    @Override
+    public boolean decreaseProductStock(int productId, int quantity) {
+        try {
+            if (productId <= 0 || quantity <= 0) {
+                return false;
+            }
+            
+            ProductDTO existingProduct = productDAO.findById(productId);
+            if (existingProduct == null) {
+                return false;
+            }
+            
+            return productDAO.decreaseStock(productId, quantity);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

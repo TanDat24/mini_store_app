@@ -53,4 +53,12 @@ public interface ProductDAO {
      * @return true nếu cập nhật thành công, false nếu thất bại
      */
     boolean updateStock(int productId, int quantity);
+    
+    /**
+     * Giảm số lượng tồn kho của sản phẩm (bán hàng)
+     * @param productId ID của sản phẩm
+     * @param quantity Số lượng cần giảm (dương)
+     * @return true nếu cập nhật thành công, false nếu thất bại
+     */
+    boolean decreaseStock(int productId, int quantity);
 }

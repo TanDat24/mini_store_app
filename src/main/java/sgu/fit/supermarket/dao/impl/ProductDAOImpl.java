@@ -230,6 +230,34 @@ public class ProductDAOImpl implements ProductDAO {
         }
     }
     
+    @Override
+    public boolean decreaseStock(int productId, int quantity) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        
+        try {
+            conn = DBConnection.getConnection();
+            if (conn == null) {
+                return false;
+            }
+            
+            String sql = "UPDATE Product SET stock = stock - ? WHERE product_id = ? AND is_deleted = 0 AND stock >= ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, quantity);
+            ps.setInt(2, productId);
+            ps.setInt(3, quantity);
+            
+            int result = ps.executeUpdate();
+            return result > 0;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            closeResources(null, ps, conn);
+        }
+    }
+    
     /**
      * Map ResultSet thành ProductDTO
      */

@@ -118,6 +118,23 @@ public class CustomerDAOImpl implements CustomerDAO {
         } finally { close(null, ps, conn); }
     }
 
+    @Override
+    public boolean addPoints(int customerId, int points) {
+        Connection conn = null; PreparedStatement ps = null;
+        try {
+            conn = DBConnection.getConnection();
+            if (conn == null) return false;
+            String sql = "UPDATE Customer SET points = points + ? WHERE customer_id = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, points);
+            ps.setInt(2, customerId);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally { close(null, ps, conn); }
+    }
+
     private CustomerDTO map(ResultSet rs) throws Exception {
         CustomerDTO c = new CustomerDTO();
         c.setCustomerId(rs.getInt("customer_id"));

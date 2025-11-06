@@ -10,4 +10,12 @@ public interface CustomerDAO {
     boolean insert(CustomerDTO customer);
     boolean update(CustomerDTO customer);
     boolean delete(int customerId);
+    
+    /**
+     * Cộng điểm cho khách hàng
+     * @param customerId ID của khách hàng
+     * @param points Số điểm cần cộng
+     * @return true nếu thành công, false nếu thất bại
+     */
+    boolean addPoints(int customerId, int points);
 }

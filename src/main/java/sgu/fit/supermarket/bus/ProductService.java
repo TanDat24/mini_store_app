@@ -53,4 +53,9 @@ public interface ProductService {
      * @return true nếu cập nhật thành công, false nếu thất bại
      */
     boolean updateProductStock(int productId, int quantity);
+    
+    /**
+     * Giảm số lượng tồn kho (bán hàng)
+     */
+    boolean decreaseProductStock(int productId, int quantity);
 }

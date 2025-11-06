@@ -580,22 +580,16 @@ public class MainFrame extends JFrame {
     }
     
     private void createInvoicePanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
-        JLabel label = new JLabel("🧾 Quản lý Hóa đơn", SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        label.setForeground(new Color(33, 33, 33));
-        
-        JLabel infoLabel = new JLabel("<html><div style='text-align: center; padding: 50px;'>" +
-            "<p style='font-size: 16px; color: #666;'>Chức năng quản lý hóa đơn sẽ được tích hợp vào đây.</p>" +
-            "</div></html>", SwingConstants.CENTER);
-        
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(infoLabel, BorderLayout.CENTER);
-        
-        contentPanel.add(panel, "INVOICE");
+        // Replace placeholder with SalesFrame
+        for (Component comp : contentPanel.getComponents()) {
+            if (comp instanceof JPanel && "INVOICE".equals(((JPanel) comp).getName())) {
+                return;
+            }
+        }
+
+        SalesFrame salesPanel = new SalesFrame();
+        salesPanel.setName("INVOICE");
+        contentPanel.add(salesPanel, "INVOICE");
     }
     
     private void createImportPanel() {
